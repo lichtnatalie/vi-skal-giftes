@@ -382,18 +382,21 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCard);
 fitCard();
 
 /* Apple Calendar.
-   In-app browsers (Messenger/Instagram) block file downloads, so there we
-   use a webcal:// link to the hosted bryllup.ics — a special scheme the
-   phone hands straight to the Calendar app, bypassing the browser.
-   Requires the page to be hosted (e.g. Netlify) with bryllup.ics beside it. */
+   When hosted, we navigate straight to the bryllup.ics file next to this
+   page. Served as text/calendar, Safari/iPhone then shows the event with
+   a native "Add to Calendar" preview — no file saved to Downloads.
+   In-app browsers (Messenger/Instagram) block that, so there we use a
+   webcal:// link instead, which the phone hands straight to Calendar. */
 function isInAppBrowser(){
   return /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\//i.test(navigator.userAgent||"");
 }
 function downloadICS(){
-  if (isInAppBrowser() && location.protocol.startsWith("http")){
-    location.href = "webcal://" + location.host + "/bryllup.ics";
+  if (location.protocol.startsWith("http")){
+    const icsPath = location.pathname.replace(/[^/]*$/, "") + "bryllup.ics";
+    location.href = (isInAppBrowser() ? "webcal://" + location.host + icsPath : icsPath);
     return;
   }
+  /* fallback for local preview (file://): generate + download the file */
   const start = WEDDING.date;
   const end   = new Date(start.getTime() + WEDDING.durationHours * 36e5);
   const ics = [
