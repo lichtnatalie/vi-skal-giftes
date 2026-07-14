@@ -297,9 +297,9 @@ const WEDDING = {
   names: "Natalie & Rune",
   // Local time of the ceremony (year, monthIndex 0-based, day, hour, min)
   date: new Date(2027, 7, 14, 16, 0),
-  durationHours: 6,
-  location: "Kommer senere",
-  description: "Save the date — Natalie & Rune skal giftes!"
+  durationHours: 6
+  // Event texts (title, description, location) live in I18N below,
+  // so the calendar entry matches the selected language.
 };
 
 /* ---------- translations ---------- */
@@ -308,15 +308,25 @@ const I18N = {
         days:"Dage", hours:"Timer", mins:"Min",
         cta:"Føj til kalender",
         ctaGoogle:"Google Kalender", ctaApple:"Apple Kalender",
-        footer:"Mere information følger" },
+        footer:"Mere information følger",
+        evSummary:"Bryllup — Natalie & Rune",
+        evDescription:"Save the date — Natalie & Rune skal giftes!",
+        evLocation:"Kommer senere",
+        icsFile:"bryllup.ics" },
   en: { header:"WE ARE\nGETTING MARRIED", date:"14 August 2027",
         days:"Days", hours:"Hours", mins:"Mins",
         cta:"Add to Calendar",
         ctaGoogle:"Google Calendar", ctaApple:"Apple Calendar",
-        footer:"More information to follow" }
+        footer:"More information to follow",
+        evSummary:"Wedding — Natalie & Rune",
+        evDescription:"Save the date — Natalie & Rune are getting married!",
+        evLocation:"To be announced",
+        icsFile:"wedding.ics" }
 };
 
+let currentLang = "da";
 function setLang(lang){
+  currentLang = lang;
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach(el=>{
     el.textContent = I18N[lang][el.dataset.i18n];
@@ -348,11 +358,12 @@ function toICSDate(d){ // UTC format: YYYYMMDDTHHMMSSZ
 function openCalendar(){
   const start = WEDDING.date;
   const end   = new Date(start.getTime() + WEDDING.durationHours * 36e5);
+  const t = I18N[currentLang];
   const url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
-    + "&text="     + encodeURIComponent("Bryllup — " + WEDDING.names)
+    + "&text="     + encodeURIComponent(t.evSummary)
     + "&dates="    + toICSDate(start) + "/" + toICSDate(end)
-    + "&details="  + encodeURIComponent(WEDDING.description)
-    + "&location=" + encodeURIComponent(WEDDING.location);
+    + "&details="  + encodeURIComponent(t.evDescription)
+    + "&location=" + encodeURIComponent(t.evLocation);
   window.open(url, "_blank");
 }
 
@@ -391,8 +402,10 @@ function isInAppBrowser(){
   return /FBAN|FBAV|FB_IAB|Messenger|Instagram|Line\//i.test(navigator.userAgent||"");
 }
 function downloadICS(){
+  const t = I18N[currentLang];
   if (location.protocol.startsWith("http")){
-    const icsPath = location.pathname.replace(/[^/]*$/, "") + "bryllup.ics";
+    /* language-specific .ics file hosted next to the page */
+    const icsPath = location.pathname.replace(/[^/]*$/, "") + t.icsFile;
     location.href = (isInAppBrowser() ? "webcal://" + location.host + icsPath : icsPath);
     return;
   }
@@ -408,9 +421,9 @@ function downloadICS(){
     "DTSTAMP:" + toICSDate(new Date()),
     "DTSTART:" + toICSDate(start),
     "DTEND:"   + toICSDate(end),
-    "SUMMARY:Bryllup — " + WEDDING.names,
-    "DESCRIPTION:" + WEDDING.description,
-    "LOCATION:" + WEDDING.location,
+    "SUMMARY:" + t.evSummary,
+    "DESCRIPTION:" + t.evDescription,
+    "LOCATION:" + t.evLocation,
     "END:VEVENT",
     "END:VCALENDAR"
   ].join("\r\n");
