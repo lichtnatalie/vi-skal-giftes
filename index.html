@@ -73,6 +73,8 @@ body{
   /* fade-in on load (transform is reserved for the fit-to-screen scaling) */
   opacity:0;
   animation: fadein 1.1s cubic-bezier(.22,.9,.3,1) .15s forwards;
+  /* re-scaling glides in sync with the calendar panel instead of snapping */
+  transition: transform .55s cubic-bezier(.22,.9,.3,1);
 }
 @keyframes fadein{ to{ opacity:1; } }
 
@@ -314,9 +316,10 @@ GIFTES</p>
    ========================================================== */
 const WEDDING = {
   names: "Natalie & Rune",
-  // The wedding day (year, monthIndex 0-based, day).
-  // The calendar entry is an all-day event; the countdown counts to midnight.
-  date: new Date(2027, 7, 14)
+  // First day (year, monthIndex 0-based, day) + number of all-days.
+  // The countdown counts to midnight of the first day.
+  date: new Date(2027, 7, 14),
+  days: 1
   // Event texts (title, description, location) live in I18N below,
   // so the calendar entry matches the selected language.
 };
@@ -377,7 +380,7 @@ function toICSDate(d){ // UTC format: YYYYMMDDTHHMMSSZ (used for timestamps)
 }
 function openCalendar(){
   const start = WEDDING.date;
-  const end   = new Date(start.getTime() + 864e5); // all-day: end = next day
+  const end   = new Date(start.getTime() + WEDDING.days * 864e5); // all-day: exclusive end
   const t = I18N[currentLang];
   const url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
     + "&text="     + encodeURIComponent(t.evSummary)
@@ -387,29 +390,39 @@ function openCalendar(){
   window.open(url, "_blank");
 }
 
-/* Reveal / hide the two calendar choices */
+/* Reveal / hide the two calendar choices.
+   The card is re-fitted IMMEDIATELY with the panel's final height, so the
+   scale transition runs in sync with the reveal — no stutter afterwards. */
 function toggleCalOptions(){
-  document.getElementById("cal-options").classList.toggle("open");
-  setTimeout(fitCard, 580); // re-fit after the reveal animation
+  const panel = document.getElementById("cal-options");
+  const opening = !panel.classList.contains("open");
+  panel.classList.toggle("open");
+  fitCard(opening ? panel.scrollHeight + 24 : -(panel.offsetHeight + 24));
+  setTimeout(function(){ fitCard(); }, 600); // gentle correction pass
 }
 
 /* ---------- fit-to-screen ----------
    Scales the card down just enough that the whole frame is always
    visible inside the window — no scrolling, on any screen. */
-function fitCard(){
+function fitCard(delta){
   const c = document.querySelector(".card");
-  c.style.transform = "";                    // reset before measuring
-  const m  = 14;                             // breathing room around the card
-  const r  = c.getBoundingClientRect();
-  const s  = Math.min(1, (innerHeight - m*2) / r.height, (innerWidth - m*2) / r.width);
+  const m = 14;                              // breathing room around the card
+  /* offsetWidth/offsetHeight = layout size, unaffected by the scale transform */
+  const h = c.offsetHeight + (delta || 0);   // predicted final height
+  const s = Math.min(1, (innerHeight - m*2) / h, (innerWidth - m*2) / c.offsetWidth);
+  c.style.transformOrigin = "top center";
   if (s < 1){
-    c.style.transformOrigin = "top center";
-    c.style.transform = "translateY(" + (((innerHeight - r.height*s)/2) - r.top) + "px) scale(" + s + ")";
+    /* predicted final layout top (card is centered until it overflows) */
+    const padTop = parseFloat(getComputedStyle(document.body).paddingTop);
+    const top = (h + padTop*2 >= innerHeight) ? padTop : (innerHeight - h)/2;
+    c.style.transform = "translateY(" + (((innerHeight - h*s)/2) - top) + "px) scale(" + s + ")";
+  } else {
+    c.style.transform = "";
   }
 }
-addEventListener("resize", fitCard);
-addEventListener("load", fitCard);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCard);
+addEventListener("resize", function(){ fitCard(); });
+addEventListener("load", function(){ fitCard(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ fitCard(); });
 fitCard();
 
 /* Apple Calendar.
@@ -431,7 +444,7 @@ function downloadICS(){
   }
   /* fallback for local preview (file://): generate + download the file */
   const start = WEDDING.date;
-  const end   = new Date(start.getTime() + 864e5); // all-day: end = next day
+  const end   = new Date(start.getTime() + WEDDING.days * 864e5); // all-day: exclusive end
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
