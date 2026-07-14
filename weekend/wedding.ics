@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//SaveTheDate//EN
+BEGIN:VEVENT
+UID:natalie-rune-20270814-en-weekend@savethedate
+DTSTAMP:20260713T120000Z
+DTSTART;VALUE=DATE:20270813
+DTEND;VALUE=DATE:20270816
+SUMMARY:Wedding — Natalie & Rune
+DESCRIPTION:Save the date — Natalie & Rune are getting married!
+LOCATION:To be announced
+END:VEVENT
+END:VCALENDAR
