@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Natalie &amp; Rune — Save the Date</title>
 
+<!-- Browser chrome: ivory tint on mobile + heart favicon -->
+<meta name="theme-color" content="#f4f1ec">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='78' font-size='82' text-anchor='middle' fill='%232b2823'>♡</text></svg>">
+
+<!-- Link preview when shared in Messenger / WhatsApp / iMessage -->
+<meta property="og:title" content="Natalie &amp; Rune — Save the Date">
+<meta property="og:description" content="14. august 2027 · Invitation følger">
+<meta property="og:image" content="https://lichtnatalie.github.io/vi-skal-giftes/share.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://lichtnatalie.github.io/vi-skal-giftes/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+
 <!-- Elegant serif + light sans pairing -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -156,6 +170,12 @@ body{
   text-transform:uppercase; color:var(--ink-soft); margin-top:3px;
 }
 
+/* small wink under the countdown */
+.wink{
+  font-style:italic; font-size:13px; letter-spacing:.04em;
+  color:var(--ink-soft); margin-top:6px;
+}
+
 /* ---------- CTA button ---------- */
 .cta{
   margin-top:26px;
@@ -272,12 +292,11 @@ GIFTES</p>
          onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#e8e2d8,#d9d2c6)'">
   </div>
 
-  <!-- Countdown -->
+  <!-- Countdown (days only) -->
   <div class="countdown" role="timer">
     <div class="count-item"><div class="num" id="cd-days">–</div><div class="lbl" data-i18n="days">Dage</div></div>
-    <div class="count-item"><div class="num" id="cd-hours">–</div><div class="lbl" data-i18n="hours">Timer</div></div>
-    <div class="count-item"><div class="num" id="cd-mins">–</div><div class="lbl" data-i18n="mins">Min</div></div>
   </div>
+  <p class="wink" data-i18n="wink">— ikke fordi vi tæller</p>
 
   <!-- CTA: one button that reveals the two calendar choices -->
   <button class="cta" onclick="toggleCalOptions()" data-i18n="cta">Føj til kalender</button>
@@ -286,7 +305,7 @@ GIFTES</p>
     <button class="cta ghost" onclick="downloadICS()" data-i18n="ctaApple">Apple Kalender</button>
   </div>
 
-  <footer data-i18n="footer">Mere information følger</footer>
+  <footer data-i18n="footer">Invitation følger</footer>
 </main>
 
 <script>
@@ -295,9 +314,9 @@ GIFTES</p>
    ========================================================== */
 const WEDDING = {
   names: "Natalie & Rune",
-  // Local time of the ceremony (year, monthIndex 0-based, day, hour, min)
-  date: new Date(2027, 7, 14, 16, 0),
-  durationHours: 6
+  // The wedding day (year, monthIndex 0-based, day).
+  // The calendar entry is an all-day event; the countdown counts to midnight.
+  date: new Date(2027, 7, 14)
   // Event texts (title, description, location) live in I18N below,
   // so the calendar entry matches the selected language.
 };
@@ -305,19 +324,21 @@ const WEDDING = {
 /* ---------- translations ---------- */
 const I18N = {
   da: { header:"VI SKAL\nGIFTES", date:"14. august 2027",
-        days:"Dage", hours:"Timer", mins:"Min",
+        days:"Dage",
+        wink:"— ikke fordi vi tæller",
         cta:"Føj til kalender",
         ctaGoogle:"Google Kalender", ctaApple:"Apple Kalender",
-        footer:"Mere information følger",
+        footer:"Invitation følger",
         evSummary:"Bryllup — Natalie & Rune",
         evDescription:"Save the date — Natalie & Rune skal giftes!",
         evLocation:"Kommer senere",
         icsFile:"bryllup.ics" },
   en: { header:"WE ARE\nGETTING MARRIED", date:"14 August 2027",
-        days:"Days", hours:"Hours", mins:"Mins",
+        days:"Days",
+        wink:"— not that we're counting",
         cta:"Add to Calendar",
         ctaGoogle:"Google Calendar", ctaApple:"Apple Calendar",
-        footer:"More information to follow",
+        footer:"Invitation to follow",
         evSummary:"Wedding — Natalie & Rune",
         evDescription:"Save the date — Natalie & Rune are getting married!",
         evLocation:"To be announced",
@@ -335,33 +356,32 @@ function setLang(lang){
   document.getElementById("btn-en").classList.toggle("active", lang==="en");
 }
 
-/* ---------- live countdown ---------- */
-const $d = document.getElementById("cd-days"),
-      $h = document.getElementById("cd-hours"),
-      $m = document.getElementById("cd-mins");
+/* ---------- live countdown (days until the wedding) ---------- */
+const $d = document.getElementById("cd-days");
 
 function tick(){
   const diff = Math.max(0, WEDDING.date - Date.now());
-  $d.textContent = Math.floor(diff / 864e5);                 // days
-  $h.textContent = String(Math.floor(diff / 36e5) % 24).padStart(2,"0");
-  $m.textContent = String(Math.floor(diff / 6e4)  % 60).padStart(2,"0");
+  $d.textContent = Math.ceil(diff / 864e5);   // days left (0 on the day itself)
 }
 tick();
-setInterval(tick, 1000);
+setInterval(tick, 60000);
 
 /* ---------- add to calendar ----------
-   Opens Google Calendar with the event pre-filled — no file download.
-   Works the same in every browser, including Messenger/Instagram. */
-function toICSDate(d){ // UTC format: YYYYMMDDTHHMMSSZ
+   The wedding is added as an ALL-DAY event.
+   Google button opens Google Calendar with the event pre-filled. */
+function toDateOnly(d){ // local date as YYYYMMDD
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,"0") + String(d.getDate()).padStart(2,"0");
+}
+function toICSDate(d){ // UTC format: YYYYMMDDTHHMMSSZ (used for timestamps)
   return d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}/,"");
 }
 function openCalendar(){
   const start = WEDDING.date;
-  const end   = new Date(start.getTime() + WEDDING.durationHours * 36e5);
+  const end   = new Date(start.getTime() + 864e5); // all-day: end = next day
   const t = I18N[currentLang];
   const url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
     + "&text="     + encodeURIComponent(t.evSummary)
-    + "&dates="    + toICSDate(start) + "/" + toICSDate(end)
+    + "&dates="    + toDateOnly(start) + "/" + toDateOnly(end)
     + "&details="  + encodeURIComponent(t.evDescription)
     + "&location=" + encodeURIComponent(t.evLocation);
   window.open(url, "_blank");
@@ -411,7 +431,7 @@ function downloadICS(){
   }
   /* fallback for local preview (file://): generate + download the file */
   const start = WEDDING.date;
-  const end   = new Date(start.getTime() + WEDDING.durationHours * 36e5);
+  const end   = new Date(start.getTime() + 864e5); // all-day: end = next day
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -419,8 +439,8 @@ function downloadICS(){
     "BEGIN:VEVENT",
     "UID:" + Date.now() + "@savethedate",
     "DTSTAMP:" + toICSDate(new Date()),
-    "DTSTART:" + toICSDate(start),
-    "DTEND:"   + toICSDate(end),
+    "DTSTART;VALUE=DATE:" + toDateOnly(start),
+    "DTEND;VALUE=DATE:"   + toDateOnly(end),
     "SUMMARY:" + t.evSummary,
     "DESCRIPTION:" + t.evDescription,
     "LOCATION:" + t.evLocation,
